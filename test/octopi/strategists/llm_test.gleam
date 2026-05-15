@@ -10,6 +10,7 @@ import octopi/strategists/llm
 // * ✅ loads the prompt template from priv/ and substitutes {{batch_size}}
 // * ✅ contains the strategy-priority guidance text
 // * ✅ asks for a JSON array in the requested batch_size
+// * ✅ explicitly forbids code expressions
 pub fn load_system_prompt_substitutes_batch_size_test() {
   let assert Ok(prompt) = llm.load_system_prompt(7)
 
@@ -17,6 +18,26 @@ pub fn load_system_prompt_substitutes_batch_size_test() {
   string.contains(prompt, "{{batch_size}}") |> should.be_false
   string.contains(prompt, "fuzz-testing strategist") |> should.be_true
   string.contains(prompt, "JSON array") |> should.be_true
+  string.contains(prompt, "code expressions") |> should.be_true
+}
+
+// ==== strip_code_fence ====
+// * ✅ leaves un-fenced text unchanged (just trims)
+// * ✅ strips ```json prefix and ``` suffix
+// * ✅ strips bare ``` prefix and ``` suffix
+// * ✅ tolerates trailing whitespace inside the fence
+pub fn strip_code_fence_no_fence_test() {
+  llm.strip_code_fence("[\"a\"]") |> should.equal("[\"a\"]")
+  llm.strip_code_fence("  [\"a\"]  ") |> should.equal("[\"a\"]")
+}
+
+pub fn strip_code_fence_json_tag_test() {
+  llm.strip_code_fence("```json\n[\"a\", \"b\"]\n```")
+  |> should.equal("[\"a\", \"b\"]")
+}
+
+pub fn strip_code_fence_bare_test() {
+  llm.strip_code_fence("```\n[\"x\"]\n```") |> should.equal("[\"x\"]")
 }
 
 // ==== parse_inputs ====
@@ -32,6 +53,14 @@ pub fn parse_inputs_basic_array_test() {
     harness.Input(prompt: "alpha"),
     harness.Input(prompt: "beta"),
     harness.Input(prompt: "gamma"),
+  ])
+}
+
+pub fn parse_inputs_handles_code_fence_test() {
+  llm.parse_inputs("```json\n[\"alpha\", \"beta\"]\n```")
+  |> should.equal([
+    harness.Input(prompt: "alpha"),
+    harness.Input(prompt: "beta"),
   ])
 }
 

@@ -126,12 +126,37 @@ fn format_verdict(v: harness.Verdict) -> String {
 }
 
 /// Decodes the LLM reply as a JSON array of strings, one Input per element.
-/// Returns an empty list on any decode failure — the round produces zero
-/// cases and the loop continues.
+/// Tolerant of common LLM wrappers: leading/trailing whitespace and
+/// markdown code fences (```json ... ``` or ``` ... ```). Returns an empty
+/// list on any decode failure — the round produces zero cases and the loop
+/// continues.
 @internal
 pub fn parse_inputs(text: String) -> List(Input) {
-  case json.parse(text, decode.list(decode.string)) {
+  let cleaned = strip_code_fence(text)
+  case json.parse(cleaned, decode.list(decode.string)) {
     Ok(strings) -> list.map(strings, fn(s) { harness.Input(prompt: s) })
     Error(_) -> []
+  }
+}
+
+/// Strips a leading ```language? fence and a trailing ``` fence if present,
+/// then trims whitespace. Pass-through for inputs without fences.
+@internal
+pub fn strip_code_fence(text: String) -> String {
+  let trimmed = string.trim(text)
+  case string.starts_with(trimmed, "```") {
+    False -> trimmed
+    True -> {
+      let after_open = string.drop_start(trimmed, 3)
+      let after_lang_tag = case string.split_once(after_open, "\n") {
+        Ok(#(_lang, rest)) -> rest
+        Error(_) -> after_open
+      }
+      let final = case string.ends_with(after_lang_tag, "```") {
+        True -> string.drop_end(after_lang_tag, 3)
+        False -> after_lang_tag
+      }
+      string.trim(final)
+    }
   }
 }
