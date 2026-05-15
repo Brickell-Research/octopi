@@ -25,7 +25,11 @@ pub fn main() -> Nil {
   io.println("== slow harness vs 20ms timeout ==")
   let slow: harness.Harness = fn(_input: harness.Input, _trigger) {
     process.sleep(200)
-    harness.Output(message: "would have been a result", tool_calls: [])
+    harness.Output(
+      message: "would have been a result",
+      tool_calls: [],
+      verdicts: [],
+    )
   }
   let timed_out =
     runner.run_all(

@@ -48,7 +48,7 @@ pub fn run_all_with_no_inputs_test() {
 pub fn run_all_times_out_slow_harness_test() {
   let slow: harness.Harness = fn(_input: harness.Input, _trigger) {
     process.sleep(200)
-    harness.Output(message: "irrelevant", tool_calls: [])
+    harness.Output(message: "irrelevant", tool_calls: [], verdicts: [])
   }
 
   let results =
