@@ -15,6 +15,7 @@ Octopi is an agentic fuzz-testing harness, written in Gleam targeting Erlang/OTP
 - Tests mirror `src/` layout one-to-one.
 - Each test function has a `// ==== name ====` header and `// * ✅ case` lines.
 - Prefer `test_helpers.table_test_N` for any test with more than one case.
+- Use `gleeunit/should` assertions (`x |> should.equal(y)`) for single-case checks. Never use raw `assert x == y` — gleeunit everywhere.
 - Custom error types over `String`; use `Result`, not exceptions.
 - `let assert` only for structural invariants — never as a substitute for real validation.
 - Never `panic` / `todo` in production code.
