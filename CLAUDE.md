@@ -41,11 +41,10 @@ src/
     harness.gleam           # core types: Input, Trigger, Output, ToolCall, Harness
     harnesses/              # concrete harness implementations
     runner.gleam            # parallel harness execution with per-run timeout + crash isolation
-    mutator.gleam           # Mutator type: fn(Input) -> Input
-    mutators/               # concrete mutator implementations
-    fuzz.gleam              # single-pass fuzz loop: corpus → mutate → harness tester → report
+    fuzz.gleam              # fuzz loops (single-pass + iterative driven by a Strategist)
     compose.gleam           # combinator: agent harness + scorer harness → harness tester
     llm/                    # provider-specific LLM clients (Anthropic for now)
+    strategists/            # strategist implementations driving the iterative loop
 test/
   test_helpers.gleam        # table_test_N executors
   octopi/                   # mirrors src/octopi/

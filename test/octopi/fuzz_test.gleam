@@ -4,11 +4,9 @@ import gleeunit/should
 import octopi/fuzz
 import octopi/harness
 import octopi/harnesses/mirror
-import octopi/mutators/append
 
 /// Inline harness tester: runs the mirror agent and tags every output with a
-/// single passing verdict on the given focus. Models the "agent + scorer
-/// collapsed into one harness" shape the orchestrator now expects.
+/// single passing verdict on the given focus.
 fn passing_tester(focus: String) -> harness.Harness {
   fn(input, trigger) {
     let agent_out = mirror.run(input, trigger)
@@ -34,15 +32,14 @@ fn failing_tester(focus: String, reason: String) -> harness.Harness {
 }
 
 // ==== run ====
-// * ✅ applies the mutator to every corpus input
+// * ✅ runs every input through the harness tester
 // * ✅ reports zero failures when harness verdicts all pass
 // * ✅ flags every case as a failure when harness reports Fail verdicts
-// * ✅ preserves seed and mutated input alongside results
+// * ✅ preserves input alongside results
 pub fn run_with_passing_tester_test() {
   let report =
     fuzz.run(
-      corpus: [harness.Input(prompt: "a"), harness.Input(prompt: "b")],
-      mutator: append.with("!"),
+      inputs: [harness.Input(prompt: "a"), harness.Input(prompt: "b")],
       harness: passing_tester("smoke"),
       trigger: harness.Manual,
       timeout_ms: 1000,
@@ -51,21 +48,18 @@ pub fn run_with_passing_tester_test() {
   list.length(report.cases) |> should.equal(2)
   list.length(report.failures) |> should.equal(0)
 
-  list.map(report.cases, fn(c) { c.seed.prompt })
+  list.map(report.cases, fn(c) { c.input.prompt })
   |> should.equal(["a", "b"])
-  list.map(report.cases, fn(c) { c.mutated.prompt })
-  |> should.equal(["a!", "b!"])
 }
 
 pub fn run_with_failing_tester_test() {
   let report =
     fuzz.run(
-      corpus: [
+      inputs: [
         harness.Input(prompt: "x"),
         harness.Input(prompt: "y"),
         harness.Input(prompt: "z"),
       ],
-      mutator: append.with(""),
       harness: failing_tester("tone", "too curt"),
       trigger: harness.Manual,
       timeout_ms: 1000,
@@ -119,8 +113,6 @@ pub fn run_iterative_zero_iterations_test() {
 }
 
 pub fn run_iterative_strategist_sees_history_test() {
-  // Strategist returns one input per round, named after the round count it
-  // observed in history. Round 0 sees 0 prior rounds → "round-0", etc.
   let strategist = fn(history: fuzz.IterativeReport) -> List(harness.Input) {
     let n = list.length(history.rounds)
     [harness.Input(prompt: "round-" <> int.to_string(n))]
@@ -137,7 +129,7 @@ pub fn run_iterative_strategist_sees_history_test() {
 
   let prompts =
     report.rounds
-    |> list.flat_map(fn(r) { list.map(r.cases, fn(c) { c.mutated.prompt }) })
+    |> list.flat_map(fn(r) { list.map(r.cases, fn(c) { c.input.prompt }) })
 
   prompts
   |> should.equal(["round-0", "round-1", "round-2", "round-3"])

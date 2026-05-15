@@ -113,7 +113,7 @@ fn format_case(c: fuzz.FuzzCase) -> String {
     runner.TimedOut -> "TIMED OUT"
     runner.Crashed(reason) -> "CRASHED: " <> reason
   }
-  "  - " <> string.inspect(c.mutated.prompt) <> " → " <> verdicts_summary
+  "  - " <> string.inspect(c.input.prompt) <> " → " <> verdicts_summary
 }
 
 fn format_verdict(v: harness.Verdict) -> String {

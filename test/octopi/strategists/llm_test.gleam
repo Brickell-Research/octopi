@@ -76,8 +76,7 @@ pub fn build_prompt_empty_history_test() {
 pub fn build_prompt_summarizes_pass_test() {
   let case_ =
     fuzz.FuzzCase(
-      seed: harness.Input(prompt: "hello"),
-      mutated: harness.Input(prompt: "hello"),
+      input: harness.Input(prompt: "hello"),
       result: runner.Completed(
         harness.Output(message: "synthetic: hello", tool_calls: [], verdicts: [
           harness.Verdict(focus: "tone", outcome: harness.Pass),
@@ -97,8 +96,7 @@ pub fn build_prompt_summarizes_pass_test() {
 pub fn build_prompt_summarizes_fail_with_reason_test() {
   let case_ =
     fuzz.FuzzCase(
-      seed: harness.Input(prompt: "this is stupid"),
-      mutated: harness.Input(prompt: "this is stupid"),
+      input: harness.Input(prompt: "this is stupid"),
       result: runner.Completed(
         harness.Output(
           message: "synthetic: this is stupid",
@@ -126,8 +124,7 @@ pub fn build_prompt_summarizes_fail_with_reason_test() {
 pub fn build_prompt_includes_all_rounds_test() {
   let make_case = fn(p: String) {
     fuzz.FuzzCase(
-      seed: harness.Input(prompt: p),
-      mutated: harness.Input(prompt: p),
+      input: harness.Input(prompt: p),
       result: runner.Completed(
         harness.Output(message: p, tool_calls: [], verdicts: [
           harness.Verdict(focus: "len", outcome: harness.Pass),

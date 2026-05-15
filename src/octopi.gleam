@@ -161,7 +161,7 @@ fn run_strategist_demo(
 fn print_round(idx: Int, round: fuzz.FuzzReport) -> Nil {
   io.println("  -- round " <> int.to_string(idx) <> " --")
   list.each(round.cases, fn(c) {
-    io.println("    input: " <> string.inspect(c.mutated.prompt))
+    io.println("    input: " <> string.inspect(c.input.prompt))
     case c.result {
       runner.Completed(out) ->
         list.each(out.verdicts, fn(v) {
