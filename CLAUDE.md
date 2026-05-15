@@ -40,6 +40,7 @@ src/
   octopi/
     harness.gleam           # core types: Input, Trigger, Output, ToolCall, Harness
     harnesses/              # concrete harness implementations
+    runner.gleam            # parallel harness execution with per-run timeout + crash isolation
 test/
   test_helpers.gleam        # table_test_N executors
   octopi/                   # mirrors src/octopi/
