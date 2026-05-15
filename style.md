@@ -1,0 +1,134 @@
+# Code Style Guide
+
+## Imports
+
+1. Import types unqualified (direct import)
+2. Use qualified imports for everything else
+
+```gleam
+import some_module.{type MyType}
+
+pub fn example() -> MyType {
+  some_module.some_function()
+}
+```
+
+## Type System Architecture
+
+1. Keep type-specific logic close to the type definition
+2. Use dispatcher pattern in parent types to delegate to child type modules
+3. Pass recursive functions as parameters to avoid circular dependencies
+
+## Testing
+
+1. One test function per method
+2. Directory structure mirrors `src/`
+3. Use comment headers to summarize test cases
+4. Use `// ==== Subsection ====` dividers within comment headers
+5. Use array-based tests with `test_helpers.array_based_test_executor_*`
+
+```gleam
+// ==== Add ====
+// * ✅ adds two numbers
+// * ✅ handles negatives
+pub fn add_test() {
+  [
+    #(1, 2, 3),
+    #(-1, 1, 0)
+  ]
+  |> test_helpers.array_based_test_executor_2(math.add)
+}
+```
+
+## Visibility
+
+Use `@internal` to mark `pub fn` that shouldn't be part of the stable API.
+
+### When to Use
+
+- **Testing exposure**: Functions that are `pub` so tests can verify them directly
+- **Implementation helpers**: Functions called by public entry points but not meant for external use
+
+### When NOT to Use
+
+Use plain `fn` (not `pub fn`) for truly private helpers that don't need test access.
+
+| Need | Syntax |
+|------|--------|
+| Private (same module) | `fn` |
+| Public for tests only | `@internal pub fn` |
+| Stable public API | `pub fn` |
+
+## Comments
+
+### Doc Comments (`///`)
+
+- Required for all `pub` items (including `@internal`)
+- Capitalize first word, end with period
+- Keep concise (1-3 lines) unless complex behavior needs explanation
+
+### Inline Comments (`//`)
+
+- Use sparingly to explain "why", not "what"
+- Capitalize as a sentence
+- Format TODOs as: `// TODO: description`
+
+### Test Comments
+
+- Header: `// ==== function_name ====`
+- Case list: `// * ✅ case description`
+- Subsections: `// ==== Section Name ====`
+
+## Module Structure
+
+1. Imports
+2. Public types (`pub type`)
+3. Public functions (`pub fn`, `@internal pub fn`)
+4. Private functions (`fn`)
+
+## Function Design
+
+- **Data-first**: Put the main data as the first argument to enable piping
+- **Labelled arguments**: Use semantic labels (`with`, `from`, `in`, `by`, `or`, `over`, `into`, `against`) for multi-parameter functions
+- **No `name name:` pattern**: Use distinct labels instead
+
+```gleam
+pub fn validate(items: List(a), by fetcher: fn(a) -> String)
+```
+
+## Boolean Conditionals
+
+Use `bool.guard` instead of `case bool { True -> ... False -> ... }`:
+
+```gleam
+use <- bool.guard(line <= 0, 0)
+line - 1
+```
+
+## Error Handling
+
+- **Use `Result`**: Not exceptions
+- **Custom error types**: Prefer over `String` for detailed, type-safe error handling
+- **Flatten nested cases**: Use `result.try` chains instead of 3+ level nesting
+- **Use `result.map_error`**: Instead of `case` that only converts error types
+- **Extract helpers**: Break per-variant logic into separate functions when nesting grows
+
+## `let assert`
+
+- **Allowed**: Structural invariants only (e.g., `dict.get` after `dict.keys`)
+- **Not allowed**: `decode.run`, `list.first` on filtered lists, or anything that can genuinely fail
+- **Rule**: If removing upstream validation would make it crash, use `result.try` instead
+
+## Use Sparingly
+
+- **`panic` / `todo`**: Never in production code
+- **`use` expression**: Only when it reduces nesting; prefer regular function calls for simple cases
+- **External functions**: Prefer Gleam code where possible
+- **Type aliases**: Prefer custom types for clarity and type safety
+
+## Patterns
+
+- **Pipe operator**: Primary composition method
+- **Recursion over loops**: Use `list.map`, `list.fold`, or explicit recursion
+- **Tail recursion**: Public wrapper calls private `_loop` function with accumulator
+- **Smart constructors**: Use opaque types with validation functions to enforce invariants
