@@ -1,9 +1,12 @@
+import envoy
 import gleam/erlang/process
+import gleam/int
 import gleam/io
 import gleam/list
 import gleam/string
 import octopi/harness
 import octopi/harnesses/mirror
+import octopi/llm/anthropic
 import octopi/runner
 
 pub fn main() -> Nil {
@@ -42,4 +45,44 @@ pub fn main() -> Nil {
       timeout_ms: 20,
     )
   list.each(timed_out, fn(r) { io.println("  " <> string.inspect(r)) })
+
+  io.println("")
+  io.println("== anthropic live call ==")
+  case envoy.get("ANTHROPIC_API_KEY") {
+    Error(Nil) -> io.println("  skipped: ANTHROPIC_API_KEY not set")
+    Ok(api_key) -> demo_anthropic(api_key)
+  }
+}
+
+fn demo_anthropic(api_key: String) -> Nil {
+  let result =
+    anthropic.complete(
+      api_key: api_key,
+      model: "claude-sonnet-4-6",
+      messages: [
+        anthropic.Message(
+          role: anthropic.System,
+          content: "Reply in exactly one sentence.",
+        ),
+        anthropic.Message(
+          role: anthropic.User,
+          content: "What is octopus camouflage?",
+        ),
+      ],
+      max_tokens: 256,
+    )
+
+  case result {
+    Ok(c) -> {
+      io.println("  text: " <> c.text)
+      io.println(
+        "  tokens: in="
+        <> int.to_string(c.input_tokens)
+        <> " out="
+        <> int.to_string(c.output_tokens),
+      )
+      io.println("  stop_reason: " <> c.stop_reason)
+    }
+    Error(e) -> io.println("  error: " <> string.inspect(e))
+  }
 }
