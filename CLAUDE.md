@@ -43,7 +43,8 @@ src/
     runner.gleam            # parallel harness execution with per-run timeout + crash isolation
     mutator.gleam           # Mutator type: fn(Input) -> Input
     mutators/               # concrete mutator implementations
-    fuzz.gleam              # single-pass fuzz loop: corpus → mutate → agent → scorer → report
+    fuzz.gleam              # single-pass fuzz loop: corpus → mutate → harness tester → report
+    compose.gleam           # combinator: agent harness + scorer harness → harness tester
     llm/                    # provider-specific LLM clients (Anthropic for now)
 test/
   test_helpers.gleam        # table_test_N executors
