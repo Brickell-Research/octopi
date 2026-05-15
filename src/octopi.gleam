@@ -58,7 +58,7 @@ fn demo_llm_agent(api_key: String) -> Nil {
   let agent =
     llm_agent.build(
       api_key: api_key,
-      model: "claude-sonnet-4-6",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 128,
       system: Some("Reply in exactly one short sentence."),
     )

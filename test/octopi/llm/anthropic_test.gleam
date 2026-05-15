@@ -10,12 +10,13 @@ import octopi/llm/anthropic
 pub fn build_request_body_basic_test() {
   let body =
     anthropic.build_request_body(
-      "claude-sonnet-4-6",
+      "claude-haiku-4-5-20251001",
       [anthropic.Message(role: anthropic.User, content: "hello")],
       256,
     )
 
-  string.contains(body, "\"model\":\"claude-sonnet-4-6\"") |> should.be_true
+  string.contains(body, "\"model\":\"claude-haiku-4-5-20251001\"")
+  |> should.be_true
   string.contains(body, "\"max_tokens\":256") |> should.be_true
   string.contains(body, "\"role\":\"user\"") |> should.be_true
   string.contains(body, "\"content\":\"hello\"") |> should.be_true
@@ -25,7 +26,7 @@ pub fn build_request_body_basic_test() {
 pub fn build_request_body_system_extraction_test() {
   let body =
     anthropic.build_request_body(
-      "claude-sonnet-4-6",
+      "claude-haiku-4-5-20251001",
       [
         anthropic.Message(role: anthropic.System, content: "be terse"),
         anthropic.Message(role: anthropic.System, content: "no emojis"),
@@ -50,7 +51,7 @@ pub fn build_request_body_system_extraction_test() {
 pub fn parse_response_single_text_block_test() {
   let body =
     "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\","
-    <> "\"model\":\"claude-sonnet-4-6\","
+    <> "\"model\":\"claude-haiku-4-5-20251001\","
     <> "\"content\":[{\"type\":\"text\",\"text\":\"hi there\"}],"
     <> "\"stop_reason\":\"end_turn\",\"stop_sequence\":null,"
     <> "\"usage\":{\"input_tokens\":5,\"output_tokens\":3}}"
