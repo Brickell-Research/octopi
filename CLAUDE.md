@@ -43,6 +43,7 @@ src/
     runner.gleam            # parallel harness execution with per-run timeout + crash isolation
     mutator.gleam           # Mutator type: fn(Input) -> Input
     mutators/               # concrete mutator implementations
+    fuzz.gleam              # single-pass fuzz loop: corpus → mutate → agent → scorer → report
 test/
   test_helpers.gleam        # table_test_N executors
   octopi/                   # mirrors src/octopi/
