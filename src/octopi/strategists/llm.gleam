@@ -1,5 +1,7 @@
+import gleam/dynamic/decode
 import gleam/erlang/application
 import gleam/int
+import gleam/json
 import gleam/list
 import gleam/result
 import gleam/string
@@ -123,13 +125,13 @@ fn format_verdict(v: harness.Verdict) -> String {
   }
 }
 
-/// Splits the LLM reply into one Input per non-empty line, trimming
-/// whitespace.
+/// Decodes the LLM reply as a JSON array of strings, one Input per element.
+/// Returns an empty list on any decode failure — the round produces zero
+/// cases and the loop continues.
 @internal
 pub fn parse_inputs(text: String) -> List(Input) {
-  text
-  |> string.split("\n")
-  |> list.map(string.trim)
-  |> list.filter(fn(s) { s != "" })
-  |> list.map(fn(s) { harness.Input(prompt: s) })
+  case json.parse(text, decode.list(decode.string)) {
+    Ok(strings) -> list.map(strings, fn(s) { harness.Input(prompt: s) })
+    Error(_) -> []
+  }
 }

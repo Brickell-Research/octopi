@@ -9,31 +9,25 @@ import octopi/strategists/llm
 // ==== load_system_prompt ====
 // * ✅ loads the prompt template from priv/ and substitutes {{batch_size}}
 // * ✅ contains the strategy-priority guidance text
+// * ✅ asks for a JSON array in the requested batch_size
 pub fn load_system_prompt_substitutes_batch_size_test() {
   let assert Ok(prompt) = llm.load_system_prompt(7)
 
-  string.contains(prompt, "Output exactly 7 inputs") |> should.be_true
+  string.contains(prompt, "exactly 7 strings") |> should.be_true
   string.contains(prompt, "{{batch_size}}") |> should.be_false
   string.contains(prompt, "fuzz-testing strategist") |> should.be_true
+  string.contains(prompt, "JSON array") |> should.be_true
 }
 
 // ==== parse_inputs ====
-// * ✅ empty string returns no inputs
-// * ✅ single line becomes one input
-// * ✅ multiple lines become a list, in order
-// * ✅ leading and trailing whitespace is trimmed
-// * ✅ blank lines are skipped
-pub fn parse_inputs_empty_test() {
-  llm.parse_inputs("") |> should.equal([])
-}
-
-pub fn parse_inputs_single_line_test() {
-  llm.parse_inputs("hello world")
-  |> should.equal([harness.Input(prompt: "hello world")])
-}
-
-pub fn parse_inputs_multi_line_test() {
-  llm.parse_inputs("alpha\nbeta\ngamma")
+// * ✅ valid JSON array becomes a list of inputs in order
+// * ✅ empty JSON array returns no inputs
+// * ✅ single-element array returns one input
+// * ✅ malformed JSON returns no inputs (not an exception)
+// * ✅ JSON of the wrong shape (object, number) returns no inputs
+// * ✅ preserves special characters inside strings
+pub fn parse_inputs_basic_array_test() {
+  llm.parse_inputs("[\"alpha\", \"beta\", \"gamma\"]")
   |> should.equal([
     harness.Input(prompt: "alpha"),
     harness.Input(prompt: "beta"),
@@ -41,20 +35,32 @@ pub fn parse_inputs_multi_line_test() {
   ])
 }
 
-pub fn parse_inputs_trims_whitespace_test() {
-  llm.parse_inputs("  padded  \n\thelloworld\t\n")
-  |> should.equal([
-    harness.Input(prompt: "padded"),
-    harness.Input(prompt: "helloworld"),
-  ])
+pub fn parse_inputs_empty_array_test() {
+  llm.parse_inputs("[]") |> should.equal([])
 }
 
-pub fn parse_inputs_skips_blank_lines_test() {
-  llm.parse_inputs("a\n\n\nb\n   \nc")
+pub fn parse_inputs_single_element_test() {
+  llm.parse_inputs("[\"only\"]")
+  |> should.equal([harness.Input(prompt: "only")])
+}
+
+pub fn parse_inputs_malformed_json_test() {
+  llm.parse_inputs("not json at all") |> should.equal([])
+  llm.parse_inputs("[\"unterminated") |> should.equal([])
+}
+
+pub fn parse_inputs_wrong_shape_test() {
+  llm.parse_inputs("{\"foo\": \"bar\"}") |> should.equal([])
+  llm.parse_inputs("42") |> should.equal([])
+  llm.parse_inputs("[1, 2, 3]") |> should.equal([])
+}
+
+pub fn parse_inputs_preserves_special_chars_test() {
+  llm.parse_inputs("[\"\", \"line1\\nline2\", \"with \\\"quotes\\\"\"]")
   |> should.equal([
-    harness.Input(prompt: "a"),
-    harness.Input(prompt: "b"),
-    harness.Input(prompt: "c"),
+    harness.Input(prompt: ""),
+    harness.Input(prompt: "line1\nline2"),
+    harness.Input(prompt: "with \"quotes\""),
   ])
 }
 
