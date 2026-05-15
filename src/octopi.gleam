@@ -40,8 +40,11 @@ fn iterative_fuzz_demo(api_key: String) -> Nil {
   let tester =
     synthetic.build([
       synthetic.MaxLength(focus: "len", limit: 50),
-      synthetic.ForbiddenSubstring(focus: "tone", needle: "stupid"),
       synthetic.RequireNonEmpty(focus: "presence"),
+      synthetic.ForbiddenSubstring(focus: "tone:no-stupid", needle: "stupid"),
+      synthetic.ForbiddenSubstring(focus: "tone:no-hate", needle: "hate"),
+      synthetic.ForbiddenSubstring(focus: "tone:no-kill", needle: "kill"),
+      synthetic.ForbiddenSubstring(focus: "tone:no-idiot", needle: "idiot"),
     ])
 
   case
@@ -62,9 +65,8 @@ fn run_strategist_loop(
   strategist: fuzz.Strategist,
   tester: harness.Harness,
 ) -> Nil {
-  io.println(
-    "  rules: MaxLength(len)=50, ForbiddenSubstring(tone)='stupid', RequireNonEmpty(presence)",
-  )
+  io.println("  rules: MaxLength(len)=50, RequireNonEmpty(presence),")
+  io.println("         ForbiddenSubstring tone:no-{stupid,hate,kill,idiot}")
   io.println("")
 
   let report =
