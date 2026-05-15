@@ -108,14 +108,24 @@ fn demo_iterative_fuzz(api_key: String) -> Nil {
       synthetic.RequireNonEmpty(focus: "presence"),
     ])
 
-  let strategist =
+  case
     llm.build(
       api_key: api_key,
       model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
       batch_size: 3,
     )
+  {
+    Error(e) ->
+      io.println("  failed to build strategist: " <> string.inspect(e))
+    Ok(strategist) -> run_strategist_demo(strategist, tester)
+  }
+}
 
+fn run_strategist_demo(
+  strategist: fuzz.Strategist,
+  tester: harness.Harness,
+) -> Nil {
   io.println(
     "  rules: MaxLength(len)=50, ForbiddenSubstring(tone)='stupid', RequireNonEmpty(presence)",
   )

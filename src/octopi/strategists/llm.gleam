@@ -1,31 +1,42 @@
+import gleam/erlang/application
 import gleam/int
 import gleam/list
+import gleam/result
 import gleam/string
 import octopi/fuzz.{type IterativeReport, type Strategist}
 import octopi/harness.{type Input}
 import octopi/llm/anthropic
 import octopi/runner
+import simplifile
+
+/// Reasons a strategist could not be constructed. Currently only covers the
+/// asset-loading path (system prompt template); more variants will land as
+/// build acquires more inputs that can fail at construction time.
+pub type LoadError {
+  /// The system-prompt template file at priv/strategists/llm_system_prompt.md
+  /// is missing or unreadable. Indicates a packaging or deployment bug.
+  PromptTemplateUnreadable(reason: String)
+}
 
 /// Builds a Strategist that asks Claude for the next batch of inputs to try
 /// against a harness tester. Black-box: the LLM only sees prior inputs and
 /// their verdicts; it does not know what rules the tester evaluates.
 ///
-/// On any Anthropic failure (transport, API, decode) the returned strategist
-/// emits an empty batch — that round produces zero cases and the loop moves
-/// on. We accept the lossiness for simplicity; future revisions can surface
-/// failures explicitly.
+/// Loads the system-prompt template from priv/ at construction. On any
+/// Anthropic failure during a round (transport, API, decode) the returned
+/// strategist emits an empty batch — that round produces zero cases and the
+/// loop moves on.
 pub fn build(
   api_key api_key: String,
   model model: String,
   max_tokens max_tokens: Int,
   batch_size batch_size: Int,
-) -> Strategist {
-  fn(history: IterativeReport) -> List(Input) {
+) -> Result(Strategist, LoadError) {
+  use system <- result.try(load_system_prompt(batch_size))
+
+  Ok(fn(history: IterativeReport) -> List(Input) {
     let messages = [
-      anthropic.Message(
-        role: anthropic.System,
-        content: system_prompt(batch_size),
-      ),
+      anthropic.Message(role: anthropic.System, content: system),
       anthropic.Message(
         role: anthropic.User,
         content: build_prompt(history, batch_size),
@@ -43,14 +54,33 @@ pub fn build(
       Ok(c) -> parse_inputs(c.text)
       Error(_) -> []
     }
-  }
+  })
 }
 
+/// Loads the system-prompt template from priv/ and substitutes the
+/// `{{batch_size}}` placeholder. Exposed for tests so they can verify the
+/// template is loadable and the substitution happens.
 @internal
-pub fn system_prompt(batch_size: Int) -> String {
-  "You are a fuzz-testing strategist trying to break a harness tester. Each round you propose inputs you believe will trigger Fail verdicts. Be creative; try edge cases (length extremes, unusual characters, suspicious substrings, empty input, etc.).\n\nOutput exactly "
-  <> int.to_string(batch_size)
-  <> " inputs, one per line. No numbering, no preamble, no markup, no quotes. Each line is one complete prompt."
+pub fn load_system_prompt(batch_size: Int) -> Result(String, LoadError) {
+  use priv <- result.try(
+    application.priv_directory("octopi")
+    |> result.map_error(fn(_) {
+      PromptTemplateUnreadable(reason: "could not locate octopi priv directory")
+    }),
+  )
+
+  let path = priv <> "/strategists/llm_system_prompt.md"
+
+  use template <- result.try(
+    simplifile.read(from: path)
+    |> result.map_error(fn(e) {
+      PromptTemplateUnreadable(
+        reason: "read failed at " <> path <> ": " <> string.inspect(e),
+      )
+    }),
+  )
+
+  Ok(string.replace(template, "{{batch_size}}", int.to_string(batch_size)))
 }
 
 /// Renders the user prompt for the strategist call. Includes a summary of

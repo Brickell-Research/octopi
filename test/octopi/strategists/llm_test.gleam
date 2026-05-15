@@ -6,6 +6,17 @@ import octopi/harness
 import octopi/runner
 import octopi/strategists/llm
 
+// ==== load_system_prompt ====
+// * ✅ loads the prompt template from priv/ and substitutes {{batch_size}}
+// * ✅ contains the strategy-priority guidance text
+pub fn load_system_prompt_substitutes_batch_size_test() {
+  let assert Ok(prompt) = llm.load_system_prompt(7)
+
+  string.contains(prompt, "Output exactly 7 inputs") |> should.be_true
+  string.contains(prompt, "{{batch_size}}") |> should.be_false
+  string.contains(prompt, "fuzz-testing strategist") |> should.be_true
+}
+
 // ==== parse_inputs ====
 // * ✅ empty string returns no inputs
 // * ✅ single line becomes one input
