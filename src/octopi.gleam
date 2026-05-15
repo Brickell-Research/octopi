@@ -1,12 +1,12 @@
 import envoy
 import gleam/erlang/process
-import gleam/int
 import gleam/io
 import gleam/list
+import gleam/option.{Some}
 import gleam/string
 import octopi/harness
+import octopi/harnesses/llm_agent
 import octopi/harnesses/mirror
-import octopi/llm/anthropic
 import octopi/runner
 
 pub fn main() -> Nil {
@@ -47,42 +47,44 @@ pub fn main() -> Nil {
   list.each(timed_out, fn(r) { io.println("  " <> string.inspect(r)) })
 
   io.println("")
-  io.println("== anthropic live call ==")
+  io.println("== llm_agent harness via runner, 3 prompts in parallel ==")
   case envoy.get("ANTHROPIC_API_KEY") {
     Error(Nil) -> io.println("  skipped: ANTHROPIC_API_KEY not set")
-    Ok(api_key) -> demo_anthropic(api_key)
+    Ok(api_key) -> demo_llm_agent(api_key)
   }
 }
 
-fn demo_anthropic(api_key: String) -> Nil {
-  let result =
-    anthropic.complete(
+fn demo_llm_agent(api_key: String) -> Nil {
+  let agent =
+    llm_agent.build(
       api_key: api_key,
       model: "claude-sonnet-4-6",
-      messages: [
-        anthropic.Message(
-          role: anthropic.System,
-          content: "Reply in exactly one sentence.",
-        ),
-        anthropic.Message(
-          role: anthropic.User,
-          content: "What is octopus camouflage?",
-        ),
-      ],
-      max_tokens: 256,
+      max_tokens: 128,
+      system: Some("Reply in exactly one short sentence."),
     )
 
-  case result {
-    Ok(c) -> {
-      io.println("  text: " <> c.text)
-      io.println(
-        "  tokens: in="
-        <> int.to_string(c.input_tokens)
-        <> " out="
-        <> int.to_string(c.output_tokens),
-      )
-      io.println("  stop_reason: " <> c.stop_reason)
+  let inputs = [
+    harness.Input(prompt: "What is octopus camouflage?"),
+    harness.Input(prompt: "Why do octopuses have three hearts?"),
+    harness.Input(prompt: "What are chromatophores?"),
+  ]
+
+  let results =
+    runner.run_all(
+      harness: agent,
+      inputs: inputs,
+      trigger: harness.Manual,
+      timeout_ms: 30_000,
+    )
+
+  list.each(list.zip(inputs, results), fn(pair) {
+    let #(input, result) = pair
+    io.println("  Q: " <> input.prompt)
+    case result {
+      runner.Completed(out) -> io.println("  A: " <> out.message)
+      runner.TimedOut -> io.println("  A: <timed out>")
+      runner.Crashed(reason) -> io.println("  A: <crashed> " <> reason)
     }
-    Error(e) -> io.println("  error: " <> string.inspect(e))
-  }
+    io.println("")
+  })
 }
